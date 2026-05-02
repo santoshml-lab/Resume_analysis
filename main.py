@@ -45,7 +45,7 @@ def predict(data: InputData):
     import pandas as pd
 
     input_df = pd.DataFrame([{
-        "education_level": data,education_level,
+        "education_level": data.education_level,
         "cgpa": data.cgpa,
         "internships": data.internships,
         "projects": data.projects,
@@ -55,9 +55,9 @@ def predict(data: InputData):
         "hackathons": data.hackathons,
         "research_papers": data.research_papers,
         "skills_score": data.skills_score ,
-        "soft_skills_score": data,soft_skills_scor,
-        "resume_length_words"; data,resume_length_words,
-        "company_type"; data,company_type
+        "soft_skills_score": data.soft_skills_scor,
+        "resume_length_words"; data.resume_length_words,
+        "company_type"; data.company_type
 
     }])
 
