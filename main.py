@@ -34,7 +34,7 @@ class InputData(BaseModel):
     skills_score: float
     soft_skills_score: float
     resume_length_words: int
-    company_type; str
+    company_type: str
 
 @app.get("/")
 def home():
