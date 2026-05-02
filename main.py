@@ -56,8 +56,8 @@ def predict(data: InputData):
         "research_papers": data.research_papers,
         "skills_score": data.skills_score ,
         "soft_skills_score": data.soft_skills_scor,
-        "resume_length_words"; data.resume_length_words,
-        "company_type"; data.company_type
+        "resume_length_words": data.resume_length_words,
+        "company_type": data.company_type
 
     }])
 
