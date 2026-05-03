@@ -2,14 +2,19 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import pandas as pd
+
 from fastapi.middleware.cors import CORSMiddleware
 
-# Load model
+# ---------------------------
+# Load Model
+# ---------------------------
 model = joblib.load("res_model.joblib")
 
-app = FastAPI()
+app = FastAPI(title="AI Hiring Decision Engine")
 
-# CORS
+# ---------------------------
+# CORS (Frontend connect)
+# ---------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,10 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Input schema
+# ---------------------------
+# Input Schema
+# ---------------------------
 class InputData(BaseModel):
     education_level: str
-    cgpa: float 
+    cgpa: float
     internships: int
     projects: int
     programming_languages: int
@@ -35,37 +42,91 @@ class InputData(BaseModel):
     company_type: str
 
 
+# ---------------------------
+# Home Route
+# ---------------------------
 @app.get("/")
 def home():
-    return {"message": "Hire Prediction API Running 🚀"}
+    return {"message": "AI Hiring API Running 🚀"}
 
 
-@app.post("/predict")
-def predict(data: InputData):
+# ---------------------------
+# Analyze Route
+# ---------------------------
+@app.post("/analyze")
+def analyze(data: InputData):
 
-    # normalize text (IMPORTANT)
-    education = data.education_level.strip().lower()
-    company = data.company_type.strip().lower()
+    # Convert to DataFrame
+    input_df = pd.DataFrame([data.dict()])
 
-    input_df = pd.DataFrame([{
-        "education_level": education,
-        "cgpa": data.cgpa,
-        "internships": data.internships,
-        "projects": data.projects,
-        "programming_languages": data.programming_languages,
-        "certifications": data.certifications,
-        "experience_years": data.experience_years,
-        "hackathons": data.hackathons,
-        "research_papers": data.research_papers,
-        "skills_score": data.skills_score,
-        "soft_skills_score": data.soft_skills_score,
-        "resume_length_words": data.resume_length_words,
-        "company_type": company
-    }])
+    # Normalize text (avoid case issue)
+    input_df["education_level"] = input_df["education_level"].str.lower().str.strip()
+    input_df["company_type"] = input_df["company_type"].str.lower().str.strip()
 
-    pred = model.predict(input_df)[0]
+    # ---------------------------
+    # Prediction
+    # ---------------------------
+    proba = model.predict_proba(input_df)[0][1]
+    prediction = 1 if proba >= 0.5 else 0
 
+    # ---------------------------
+    # Reason Engine
+    # ---------------------------
+    reasons = []
+
+    if data.cgpa < 6:
+        reasons.append("Low CGPA")
+
+    if data.projects < 2:
+        reasons.append("Less projects")
+
+    if data.internships == 0:
+        reasons.append("No internship")
+
+    if data.skills_score < 50:
+        reasons.append("Weak technical skills")
+
+    if data.soft_skills_score < 50:
+        reasons.append("Weak communication")
+
+    if data.experience_years < 1:
+        reasons.append("Low experience")
+
+    if data.programming_languages < 2:
+        reasons.append("Low coding exposure")
+
+    if data.resume_length_words < 300:
+        reasons.append("Short resume")
+
+    # ---------------------------
+    # Risk Score
+    # ---------------------------
+    risk_score = 1 - proba
+
+    if risk_score > 0.6:
+        risk_level = "High Risk 🔴"
+    elif risk_score > 0.3:
+        risk_level = "Medium Risk 🟡"
+    else:
+        risk_level = "Low Risk 🟢"
+
+    # ---------------------------
+    # Final Output
+    # ---------------------------
     return {
-        "prediction": int(pred),
-        "result": "Hired ✅" if pred == 1 else "Not Hired ❌"
+        "prediction": int(prediction),
+        "result": "Hired ✅" if prediction == 1 else "Not Hired ❌",
+        "confidence": float(round(proba, 3)),
+        "risk_score": float(round(risk_score, 3)),
+        "risk_level": risk_level,
+        "reasons": reasons if reasons else ["Strong profile"]
     }
+
+
+
+
+
+    
+        
+        
+    
