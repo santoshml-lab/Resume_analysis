@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
-import numpy as np
-
-# 🔥 CORS import
+import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load model
@@ -11,10 +9,10 @@ model = joblib.load("res_model.joblib")
 
 app = FastAPI()
 
-# 🔥 CORS setup (important)
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # production में specific domain देना
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,7 +24,7 @@ class InputData(BaseModel):
     cgpa: float 
     internships: int
     projects: int
-    programing_languages: int
+    programming_languages: int
     certifications: int
     experience_years: float
     hackathons: int
@@ -36,16 +34,21 @@ class InputData(BaseModel):
     resume_length_words: int
     company_type: str
 
+
 @app.get("/")
 def home():
-    return {"message": "Hiire Prediction API Running 🚀"}
+    return {"message": "Hire Prediction API Running 🚀"}
+
 
 @app.post("/predict")
 def predict(data: InputData):
-    import pandas as pd
+
+    # normalize text (IMPORTANT)
+    education = data.education_level.strip().lower()
+    company = data.company_type.strip().lower()
 
     input_df = pd.DataFrame([{
-        "education_level": data.education_level,
+        "education_level": education,
         "cgpa": data.cgpa,
         "internships": data.internships,
         "projects": data.projects,
@@ -54,16 +57,15 @@ def predict(data: InputData):
         "experience_years": data.experience_years,
         "hackathons": data.hackathons,
         "research_papers": data.research_papers,
-        "skills_score": data.skills_score ,
-        "soft_skills_score": data.soft_skills_scor,
+        "skills_score": data.skills_score,
+        "soft_skills_score": data.soft_skills_score,
         "resume_length_words": data.resume_length_words,
-        "company_type": data.company_type
-
+        "company_type": company
     }])
 
-    prediction = model.predict(input_df)[0]
+    pred = model.predict(input_df)[0]
 
     return {
-        "prediction": int(prediction),
-        "result": "Hired ✅" if prediction == 1 else "Nothired ❌"
+        "prediction": int(pred),
+        "result": "Hired ✅" if pred == 1 else "Not Hired ❌"
     }
