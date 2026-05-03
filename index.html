@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HireSense AI • Dashboard 2.0</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #020617;
+    color: white;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #22c55e;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.card {
+    background: #0f172a;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 6px 0;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background: #22c55e;
+    border: none;
+    border-radius: 8px;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.result {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.green { background: #064e3b; }
+.red { background: #7f1d1d; }
+.yellow { background: #78350f; }
+
+table {
+    width: 100%;
+    margin-top: 15px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 8px;
+    border-bottom: 1px solid #334155;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>🚀 HireSense AI PRO</h1>
+
+    <div class="grid">
+
+        <!-- LEFT: Single Candidate -->
+        <div class="card">
+            <h2>Single Analysis</h2>
+
+            <input id="cgpa" placeholder="CGPA">
+            <input id="projects" placeholder="Projects">
+            <input id="skills" placeholder="Skills Score">
+            <input id="soft" placeholder="Soft Skills">
+            <input id="internships" placeholder="Internships">
+
+            <button onclick="analyze()">Analyze</button>
+
+            <div id="singleResult"></div>
+        </div>
+
+        <!-- RIGHT: Chart -->
+        <div class="card">
+            <h2>Score Breakdown</h2>
+            <canvas id="chart"></canvas>
+        </div>
+
+    </div>
+
+    <!-- MULTI CANDIDATE -->
+    <div class="card">
+        <h2>🏆 Candidate Ranking</h2>
+
+        <button onclick="rank()">Generate Ranking</button>
+
+        <table id="rankTable"></table>
+    </div>
+</div>
+
+<script>
+
+const API = "https://resume-analysis-p7nf.onrender.com"; // replace
+
+let chart;
+
+async function analyze() {
+
+    const data = {
+        education_level: "Graduate",
+        cgpa: parseFloat(cgpa.value),
+        internships: parseInt(internships.value),
+        projects: parseInt(projects.value),
+        programming_languages: 3,
+        certifications: 2,
+        experience_years: 1,
+        hackathons: 1,
+        research_papers: 0,
+        skills_score: parseFloat(skills.value),
+        soft_skills_score: parseFloat(soft.value),
+        resume_length_words: 400,
+        company_type: "MNC"
+    };
+
+    const res = await fetch(API + "/analyze", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    });
+
+    const r = await res.json();
+
+    let color = "green";
+    if (r.risk_level.includes("High")) color = "red";
+    else if (r.risk_level.includes("Medium")) color = "yellow";
+
+    singleResult.innerHTML = `
+        <div class="result ${color}">
+            <h3>${r.result}</h3>
+            <p>Confidence: ${r.confidence}</p>
+            <p>Score: ${r.score}</p>
+            <p>Risk: ${r.risk_level}</p>
+        </div>
+    `;
+
+    // Chart update
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("chart"), {
+        type: "bar",
+        data: {
+            labels: ["Score", "Confidence", "Risk"],
+            datasets: [{
+                data: [r.score, r.confidence*100, (1-r.confidence)*100]
+            }]
+        }
+    });
+}
+
+async function rank() {
+
+    const sample = [
+        {
+            education_level: "Graduate",
+            cgpa: 8,
+            internships: 2,
+            projects: 4,
+            programming_languages: 3,
+            certifications: 2,
+            experience_years: 1,
+            hackathons: 1,
+            research_papers: 0,
+            skills_score: 80,
+            soft_skills_score: 70,
+            resume_length_words: 400,
+            company_type: "MNC"
+        },
+        {
+            education_level: "Graduate",
+            cgpa: 6,
+            internships: 0,
+            projects: 1,
+            programming_languages: 1,
+            certifications: 0,
+            experience_years: 0,
+            hackathons: 0,
+            research_papers: 0,
+            skills_score: 40,
+            soft_skills_score: 50,
+            resume_length_words: 200,
+            company_type: "Startup"
+        }
+    ];
+
+    const res = await fetch(API + "/rank", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(sample)
+    });
+
+    const r = await res.json();
+
+    rankTable.innerHTML = `
+        <tr><th>Rank</th><th>Score</th><th>Result</th></tr>
+        ${r.ranking.map(c => `
+            <tr>
+                <td>${c.rank}</td>
+                <td>${c.score}</td>
+                <td>${c.result}</td>
+            </tr>
+        `).join("")}
+    `;
+}
+
+</script>
+
+</body>
+</html>
+    
+
+    
